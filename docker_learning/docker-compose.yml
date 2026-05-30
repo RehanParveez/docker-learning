@@ -1,4 +1,28 @@
 services:
+
+  # Redis
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis
+    restart: always
+
+  # Database Postgres
+  db:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=rehpostgre1
+    container_name: postgres_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+# Django Application
   app:
     build: .
     volumes:
@@ -6,46 +30,22 @@ services:
     ports:
       - 8001:8001
     image: app:django
-    container_name: djano_container
+    container_name: djano_app
     command: python manage.py runserver 0.0.0.0:8001
     depends_on:
       db:
         condition: service_healthy
-        
-  db:
-    # image: postgres
-    # volumes:
-    #   - postgres_data:/var/lib/postgresql
-    # environment:
-    #   - POSTGRES_DB=postgres
-    #   - POSTGRES_USER=postgres
-    #   - POSTGRES_PASSWORD=rehpostgre1
-    # container_name: postgres_db
-    # healthcheck:
-    #   test: ["CMD-SHELL", "pg_isready -U postgres"]
-    #   interval: 5s
-    #   timeout: 5s
-    #   retries: 5
-
-# volumes:
-#   postgres_data:
-
-    image: mysql:8.0
-    container_name: mysql_db
-    command: --default-authentication-plugin=mysql_native_password
-    restart: always
+  
+  # Celery:
+  celery:
+    build: .
+    command: celery -A core worker -l DEBUG
     volumes:
-      - mysql_data:/var/lib/mysql
-    environment:
-      MYSQL_DATABASE: django_app_db
-      MYSQL_USER: rehan_user
-      MYSQL_PASSWORD: rehmysqlpw1
-      MYSQL_ROOT_PASSWORD: rootpwsecret
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpwsecret"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
+      - .:/django
+    container_name: celery
+    depends_on:
+      - db
+      - redis
+      
 volumes:
-  mysql_data:
+  postgres_data:

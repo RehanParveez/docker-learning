@@ -3,4 +3,5 @@ Django==5.2.7
 pytz==2026.2
 sqlparse==0.5.3
 psycopg2-binary==2.9.12
-mysqlclient>=2.2.0
+celery>=5.4.0
+redis>=5.0.0
