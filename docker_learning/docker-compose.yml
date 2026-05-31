@@ -1,51 +1,95 @@
+# services:
+
+#   # Redis
+#   redis:
+#     image: redis:7.4-alpine
+#     container_name: redis
+#     restart: always
+
+#   # Database Postgres
+#   db:
+#     image: postgres
+#     volumes:
+#       - postgres_data:/var/lib/postgresql
+#     environment:
+#       - POSTGRES_DB=postgres
+#       - POSTGRES_USER=postgres
+#       - POSTGRES_PASSWORD=rehpostgre1
+#     container_name: postgres_db
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 5
+
+# # Django Application
+#   app:
+#     build: .
+#     volumes:
+#       - .:/django
+#     ports:
+#       - 8001:8001
+#     image: app:django
+#     container_name: djano_app
+#     command: python manage.py runserver 0.0.0.0:8001
+#     depends_on:
+#       db:
+#         condition: service_healthy
+  
+#   # Celery:
+#   celery:
+#     build: .
+#     command: celery -A core worker -l DEBUG
+#     volumes:
+#       - .:/django
+#     container_name: celery
+#     depends_on:
+#       - db
+#       - redis
+
+# volumes:
+#   postgres_data:
+
+
 services:
-
-  # Redis
-  redis:
-    image: redis:7.4-alpine
-    container_name: redis
-    restart: always
-
-  # Database Postgres
   db:
+    container_name: postgresql_db
     image: postgres
+    # automatically restarts the container - Docker daemon on restart or 
+    # the container itself is manually restarted
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql
     environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=rehpostgre1
-    container_name: postgres_db
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-# Django Application
-  app:
-    build: .
-    volumes:
-      - .:/django
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rehpostgre1
+      POSTGRES_DB: test_db
     ports:
-      - 8001:8001
-    image: app:django
-    container_name: djano_app
-    command: python manage.py runserver 0.0.0.0:8001
-    depends_on:
-      db:
-        condition: service_healthy
-  
-  # Celery:
-  celery:
-    build: .
-    command: celery -A core worker -l DEBUG
-    volumes:
-      - .:/django
-    container_name: celery
-    depends_on:
-      - db
-      - redis
-      
+      - "5433:5432"
+    networks:
+      app_net:
+        ipv4_address: 192.168.0.2
+  pgadmin:
+    container_name: pgadmin4
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: rparveez417@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: root
+      # PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "5050:80"
+    networks:
+      app_net:
+        ipv4_address: 192.168.0.3
+
+networks:
+  app_net:
+    ipam:
+      driver: default
+      config: 
+        - subnet: "192.168.0.0/24"
+          gateway: 192.168.0.1
+
 volumes:
   postgres_data:
